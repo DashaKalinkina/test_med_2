@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Добавление вопросов к тесту{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Вопросы к тесту: {{ test.title }}</h2>
+        <a href="{{ url_for('moderator.panel') }}" class="btn btn-outline-secondary">
+            ← Назад к панели
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Информация о тесте</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <p><strong>Описание:</strong> {{ test.description }}</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6>Сложность</h6>
+                                    <span class="badge bg-{{ 'success' if test.difficulty == 'easy' else 'warning' if test.difficulty == 'medium' else 'danger' }}">
+                                        {{ test.difficulty }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6>Вопросов</h6>
+                                    <span class="fs-5">{{ questions|length }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Существующие вопросы -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Существующие вопросы ({{ questions|length }})</h5>
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
+                <i class="bi bi-plus"></i> Добавить вопрос
+            </button>
+        </div>
+        <div class="card-body">
+            {% if questions %}
+            <div class="list-group">
+                {% for question in questions %}
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">Вопрос {{ loop.index }}</h6>
+                        <small class="text-muted">{{ question.points }} балл(ов)</small>
+                    </div>
+                    <p class="mb-2">{{ question.text }}</p>
+
+                    <small>Тип: {{ 'Один ответ' if question.question_type == 'single' else 'Несколько ответов' }}</small>
+
+                    <!-- Ответы -->
+                    <div class="mt-2">
+                        <strong>Ответы:</strong>
+                        <ul class="mb-1">
+                            {% for answer in question.answers %}
+                            <li class="{{ 'text-success' if answer.is_correct else 'text-muted' }}">
+                                {{ answer.text }}
+                                {% if answer.is_correct %}
+                                <span class="badge bg-success">Правильный</span>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                В этом тесте пока нет вопросов. Добавьте первый вопрос!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="d-flex justify-content-between">
+        <a href="{{ url_for('moderator.panel') }}" class="btn btn-secondary">
+            Завершить редактирование
+        </a>
+
+        {% if questions|length > 0 %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i> Тест готов к публикации!
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> Добавьте хотя бы один вопрос для публикации теста
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальное окно для добавления вопроса -->
+<div class="modal fade" id="addQuestionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавление нового вопроса</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('moderator.add_question', test_id=test.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Текст вопроса:</label>
+                        <textarea class="form-control" name="question_text" rows="3" required></textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Тип вопроса:</label>
+                            <select class="form-select" name="question_type" required>
+                                <option value="single">Один правильный ответ</option>
+                                <option value="multiple">Несколько правильных ответов</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Баллы:</label>
+                            <input type="number" class="form-control" name="points" value="1" min="1" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ответы (отметьте правильные):</label>
+                        <div id="answers-container">
+                            <!-- Ответы будут добавляться динамически -->
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" name="answer_text_1" placeholder="Текст ответа" required>
+                                <div class="input-group-text">
+                                    <input class="form-check-input" type="checkbox" name="is_correct_1" value="true">
+                                    <label class="form-check-label ms-2">Правильный</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addAnswerField()">
+                            <i class="bi bi-plus"></i> Добавить ответ
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Добавить вопрос</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let answerCounter = 2;
+
+function addAnswerField() {
+    const container = document.getElementById('answers-container');
+    const newAnswer = document.createElement('div');
+    newAnswer.className = 'input-group mb-2';
+    newAnswer.innerHTML = `
+        <input type="text" class="form-control" name="answer_text_${answerCounter}" placeholder="Текст ответа" required>
+        <div class="input-group-text">
+            <input class="form-check-input" type="checkbox" name="is_correct_${answerCounter}" value="true">
+            <label class="form-check-label ms-2">Правильный</label>
+        </div>
+        <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">
+            <i class="bi bi-trash"></i>
+        </button>
+    `;
+    container.appendChild(newAnswer);
+    answerCounter++;
+}
+</script>
+{% endblock %}

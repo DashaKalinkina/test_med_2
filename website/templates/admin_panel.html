@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Админ-панель{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Админ-панель</h2>
+    
+    <!-- Статистика системы -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body text-center">
+                    <h3>{{ total_users }}</h3>
+                    <p>Пользователей</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body text-center">
+                    <h3>{{ total_tests }}</h3>
+                    <p>Тестов</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body text-center">
+                    <h3>{{ total_results }}</h3>
+                    <p>Результатов</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body text-center">
+                    <h3>{{ active_tests }}</h3>
+                    <p>Активных тестов</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Быстрые действия -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Управление системой</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <a href="{{ url_for('main.admin_users') }}" class="btn btn-outline-primary w-100">
+                        Пользователи
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="{{ url_for('moderator.panel') }}" class="btn btn-outline-success w-100">
+                        Управление тестами
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="#" class="btn btn-outline-info w-100">
+                        Настройки
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="#" class="btn btn-outline-secondary w-100">
+                        Логи
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Последняя активность -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Последние результаты тестов</h5>
+        </div>
+        <div class="card-body">
+            {% if recent_results %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Пользователь</th>
+                            <th>Тест</th>
+                            <th>Результат</th>
+                            <th>Статус</th>
+                            <th>Дата</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in recent_results %}
+                        <tr>
+                            <td>
+                                {% if result.worker %}
+                                {{ result.worker.get_full_name() }}
+                                {% else %}
+                                Пользователь удален
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result.test %}
+                                {{ result.test.title }}
+                                {% else %}
+                                Тест удален
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result.percentage is not none %}
+                                {{ "%.1f"|format(result.percentage) }}%
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result.passed is true %}
+                                <span class="badge bg-success">Пройден</span>
+                                {% elif result.passed is false %}
+                                <span class="badge bg-danger">Не пройден</span>
+                                {% else %}
+                                <span class="badge bg-warning">В процессе</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result.completed_at %}
+                                {{ result.completed_at.strftime('%d.%m.%Y %H:%M') }}
+                                {% else %}
+                                {{ result.started_at.strftime('%d.%m.%Y %H:%M') }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result.percentage is not none %}
+                                <a href="{{ url_for('main.test_result', result_id=result.id) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    Подробнее
+                                </a>
+                                {% else %}
+                                <button class="btn btn-sm btn-outline-secondary" disabled>
+                                    В процессе
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                Нет данных о результатах тестов.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
