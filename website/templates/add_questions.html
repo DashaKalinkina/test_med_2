@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+
+{% block title %}Добавление вопросов к тесту{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Вопросы к тесту: {{ test.title }}</h2>
+        <a href="{{ url_for('moderator.panel') }}" class="btn btn-outline-secondary">
+            ← Назад к панели
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Информация о тесте</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <p><strong>Описание:</strong> {{ test.description }}</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6>Сложность</h6>
+                                    <span class="badge bg-{{ 'success' if test.difficulty == 'easy' else 'warning' if test.difficulty == 'medium' else 'danger' }}">
+                                        {{ test.difficulty }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6>Вопросов</h6>
+                                    <span class="fs-5">{{ questions|length }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Существующие вопросы -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Существующие вопросы ({{ questions|length }})</h5>
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
+                <i class="bi bi-plus"></i> Добавить вопрос
+            </button>
+        </div>
+        <div class="card-body">
+            {% if questions %}
+            <div class="list-group">
+                {% for question in questions %}
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">Вопрос {{ loop.index }}</h6>
+                        <small class="text-muted">{{ question.points }} балл(ов)</small>
+                    </div>
+                    <p class="mb-2">{{ question.text }}</p>
+
+                    <small>Тип: {{ 'Один ответ' if question.question_type == 'single' else 'Несколько ответов' }}</small>
+
+                    <!-- Ответы -->
+                    <div class="mt-2">
+                        <strong>Ответы:</strong>
+                        <ul class="mb-1">
+                            {% for answer in question.answers %}
+                            <li class="{{ 'text-success' if answer.is_correct else 'text-muted' }}">
+                                {{ answer.text }}
+                                {% if answer.is_correct %}
+                                <span class="badge bg-success">Правильный</span>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                В этом тесте пока нет вопросов. Добавьте первый вопрос!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="d-flex justify-content-between">
+        <a href="{{ url_for('moderator.panel') }}" class="btn btn-secondary">
+            Завершить редактирование
+        </a>
+
+        {% if questions|length > 0 %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i> Тест готов к публикации!
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> Добавьте хотя бы один вопрос для публикации теста
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальное окно для добавления вопроса (полностью расширенное) -->
+<div class="modal fade" id="addQuestionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавление нового вопроса</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST"
+                  enctype="multipart/form-data"
+                  id="question-form"
+                  action="{{ url_for('moderator.add_question', test_id=test.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Текст вопроса</label>
+                        <textarea class="form-control" name="question_text" rows="3" required></textarea>
+                    </div>
+
+                    <!-- Тематика, сложность и параметры вопроса -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Тема / раздел</label>
+                            <input type="text" class="form-control" name="topic"
+                                   placeholder="Например: Кардиология, Вакцинация детей...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Уровень сложности</label>
+                            <select class="form-select" name="question_level">
+                                <option value="basic">Базовый</option>
+                                <option value="medium" selected>Средний</option>
+                                <option value="hard">Сложный</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Баллы</label>
+                            <input type="number" class="form-control" name="points" value="1" min="1" max="10">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Изображение</label>
+                            <input type="file" class="form-control" name="image">
+                            <small class="text-muted">Изображение (опционально)</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Тип вопроса</label>
+                            <select class="form-select" id="question-type" name="question_type">
+                                <option value="single">Один правильный ответ</option>
+                                <option value="multiple">Несколько правильных ответов</option>
+                                <option value="text">Текстовый ответ (слово/фраза)</option>
+                            </select>
+                            <small class="text-muted" id="question-type-hint"></small>
+                        </div>
+                    </div>
+
+                    <!-- Динамические поля для ответов -->
+                    <div id="answer-fields">
+                        <div id="choice-answers-section" class="mb-3" style="display: none;">
+                            <h5>Варианты ответов:</h5>
+                            <div id="choice-answers">
+                                <div class="row mb-2 align-items-center answer-row" id="answer-row-0">
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control answer-text"
+                                               name="question-answers-0-text"
+                                               placeholder="Текст ответа">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input type="checkbox"
+                                                   class="form-check-input answer-correct"
+                                                   name="question-answers-0-is_correct"
+                                                   value="true"
+                                                   id="answer-0-correct">
+                                            <label class="form-check-label" for="answer-0-correct">
+                                                Правильный
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-outline-danger btn-sm remove-answer"
+                                                data-index="0"
+                                                style="display: none;">
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="row mb-2 align-items-center answer-row" id="answer-row-1">
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control answer-text"
+                                               name="question-answers-1-text"
+                                               placeholder="Текст ответа">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input type="checkbox"
+                                                   class="form-check-input answer-correct"
+                                                   name="question-answers-1-is_correct"
+                                                   value="true"
+                                                   id="answer-1-correct">
+                                            <label class="form-check-label" for="answer-1-correct">
+                                                Правильный
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-outline-danger btn-sm remove-answer"
+                                                data-index="1"
+                                                style="display: none;">
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" id="add-answer" class="btn btn-outline-primary btn-sm mt-2">
+                                + Добавить вариант ответа
+                            </button>
+                            <small class="text-muted d-block mt-1">Отметьте правильные варианты галочкой</small>
+                        </div>
+
+                        <div id="text-answer-section" class="mb-3" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label" for="text-answer-input">Правильный текстовый ответ</label>
+                                <input type="text" class="form-control" id="text-answer-input"
+                                       name="text_correct_answer"
+                                       placeholder="Например: сердце, аорта, 206">
+                                <small class="text-muted">Введите правильный ответ для автоматической проверки</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Добавить вопрос
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const questionType = document.getElementById('question-type');
+    const choiceAnswersSection = document.getElementById('choice-answers-section');
+    const textAnswerSection = document.getElementById('text-answer-section');
+    const questionTypeHint = document.getElementById('question-type-hint');
+    const addAnswerBtn = document.getElementById('add-answer');
+    const choiceAnswers = document.getElementById('choice-answers');
+    let answerCount = 2;
+
+    const typeHints = {
+        'single': 'Выберите один правильный вариант',
+        'multiple': 'Можно выбрать несколько правильных вариантов',
+        'text': 'Пользователь введет ответ в текстовое поле'
+    };
+
+    function updateAnswerFields() {
+        const type = questionType.value;
+        questionTypeHint.textContent = typeHints[type] || '';
+
+        if (type === 'single' || type === 'multiple') {
+            choiceAnswersSection.style.display = 'block';
+            textAnswerSection.style.display = 'none';
+        } else if (type === 'text') {
+            choiceAnswersSection.style.display = 'none';
+            textAnswerSection.style.display = 'block';
+        }
+    }
+
+    questionType.addEventListener('change', updateAnswerFields);
+    updateAnswerFields();
+
+    if (addAnswerBtn) {
+        addAnswerBtn.addEventListener('click', function() {
+            if (answerCount < 10) {
+                const newIndex = answerCount;
+                answerCount++;
+
+                const newRow = document.createElement('div');
+                newRow.className = 'row mb-2 align-items-center answer-row';
+                newRow.id = `answer-row-${newIndex}`;
+
+                if (questionType.value === 'single') {
+                    newRow.innerHTML = `
+                        <div class="col-md-8">
+                            <input type="text" class="form-control answer-text"
+                                   name="question-answers-${newIndex}-text"
+                                   placeholder="Текст ответа">
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input type="radio"
+                                       class="form-check-input answer-correct"
+                                       name="correct_answer"
+                                       value="${newIndex}"
+                                       id="answer-${newIndex}-correct">
+                                <label class="form-check-label" for="answer-${newIndex}-correct">
+                                    Правильный
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-answer"
+                                    data-index="${newIndex}">
+                                ✕
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    newRow.innerHTML = `
+                        <div class="col-md-8">
+                            <input type="text" class="form-control answer-text"
+                                   name="question-answers-${newIndex}-text"
+                                   placeholder="Текст ответа">
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input type="checkbox"
+                                       class="form-check-input answer-correct"
+                                       name="question-answers-${newIndex}-is_correct"
+                                       value="true"
+                                       id="answer-${newIndex}-correct">
+                                <label class="form-check-label" for="answer-${newIndex}-correct">
+                                    Правильный
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-answer"
+                                    data-index="${newIndex}">
+                                ✕
+                            </button>
+                        </div>
+                    `;
+                }
+
+                choiceAnswers.appendChild(newRow);
+
+                document.querySelectorAll('.remove-answer').forEach(btn => {
+                    btn.style.display = 'block';
+                });
+            } else {
+                alert('Максимум 10 вариантов ответа');
+            }
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-answer')) {
+            const index = e.target.getAttribute('data-index');
+            const row = document.getElementById(`answer-row-${index}`);
+            if (row && answerCount > 2) {
+                row.remove();
+                answerCount--;
+
+                document.querySelectorAll('.answer-row').forEach((row, idx) => {
+                    const inputs = row.querySelectorAll('input');
+                    inputs.forEach(input => {
+                        const name = input.getAttribute('name');
+                        if (name && name.includes('question-answers-')) {
+                            input.setAttribute('name', name.replace(/question-answers-\d+/, `question-answers-${idx}`));
+                        }
+                        if (input.type === 'radio' && input.name === 'correct_answer') {
+                            input.value = idx;
+                        }
+                    });
+
+                    const labels = row.querySelectorAll('label');
+                    labels.forEach(label => {
+                        const forAttr = label.getAttribute('for');
+                        if (forAttr && forAttr.includes('answer-')) {
+                            label.setAttribute('for', forAttr.replace(/answer-\d+/, `answer-${idx}`));
+                        }
+                    });
+
+                    const removeBtn = row.querySelector('.remove-answer');
+                    if (removeBtn) {
+                        removeBtn.setAttribute('data-index', idx);
+                    }
+
+                    row.id = `answer-row-${idx}`;
+                });
+
+                if (answerCount <= 2) {
+                    document.querySelectorAll('.remove-answer').forEach(btn => {
+                        btn.style.display = 'none';
+                    });
+                }
+            }
+        }
+    });
+
+    document.getElementById('question-form').addEventListener('submit', function(e) {
+        const type = questionType.value;
+        let isValid = true;
+
+        const questionText = document.querySelector('[name="question_text"]');
+        if (!questionText || !questionText.value.trim()) {
+            alert('Введите текст вопроса');
+            isValid = false;
+        }
+
+        if (type === 'text') {
+            const correctAnswer = document.getElementById('text-answer-input');
+            if (!correctAnswer || !correctAnswer.value.trim()) {
+                alert('Введите правильный ответ для текстового вопроса');
+                isValid = false;
+            }
+        }
+
+        if (type === 'single' || type === 'multiple') {
+            const answerTexts = document.querySelectorAll('.answer-text');
+            let hasAnswers = false;
+            answerTexts.forEach(input => {
+                if (input.value.trim()) {
+                    hasAnswers = true;
+                }
+            });
+
+            if (!hasAnswers) {
+                alert('Добавьте хотя бы один вариант ответа');
+                isValid = false;
+            }
+
+            if (type === 'single') {
+                const checkedRadio = document.querySelector('input[name="correct_answer"]:checked');
+                if (!checkedRadio) {
+                    alert('Выберите правильный вариант ответа');
+                    isValid = false;
+                }
+            }
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+
+<style>
+.answer-row {
+    transition: all 0.3s ease;
+}
+
+.answer-row:hover {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.remove-answer {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+</style>
+{% endblock %}

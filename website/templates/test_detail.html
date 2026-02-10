@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}{{ test.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-0">{{ test.title }}</h2>
+                <small class="text-muted">
+                    {% if test.access_type == 'subscribed' %}
+                    Тест по подписке
+                    {% else %}
+                    Обычный тест
+                    {% endif %}
+                </small>
+            </div>
+            <span class="badge bg-{{ 'success' if test.is_active else 'secondary' }}">
+                {{ 'Активный' if test.is_active else 'Неактивный' }}
+            </span>
+        </div>
+
+        <div class="card-body">
+            <p class="lead">{{ test.description }}</p>
+
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5>Сложность</h5>
+                            <span class="badge bg-info fs-6">{{ test.difficulty }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5>Время</h5>
+                            <span class="fs-5">{{ test.time_limit // 60 }} мин</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5>Вопросы</h5>
+                            <span class="fs-5">{{ questions|length }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5>Проходной балл</h5>
+                            <span class="fs-5">{{ test.passing_score }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if questions and result_id %}
+<div class="alert alert-warning">
+    <div class="d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock"></i> Оставшееся время:</span>
+        <span id="timer" class="fs-4 fw-bold">{{ test.time_limit // 60 }}:00</span>
+    </div>
+</div>
+            {% endif %}
+
+            <!-- ЕСЛИ ЕСТЬ ВОПРОСЫ (режим прохождения теста) -->
+            {% if questions and result_id %}
+              <form method="POST" action="{{ url_for('main.take_test', result_id=result_id) }}">
+                {% for question in questions %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5>Вопрос {{ loop.index }} ({{ question.points }} балл{{ 'а' if question.points > 1 else '' }}):</h5>
+
+                        <!-- Изображение вопроса, если есть -->
+                        {% if question.image_filename %}
+                        <div class="mb-3">
+                            <img src="{{ url_for('static', filename='uploads/' + question.image_filename) }}"
+                                 class="img-fluid rounded"
+                                 alt="Изображение к вопросу"
+                                 style="max-height: 300px;">
+                        </div>
+                        {% endif %}
+
+                        <p class="fs-5">{{ question.text }}</p>
+
+                        <!-- Тип: одиночный выбор -->
+                        {% if question.question_type == 'single' %}
+                            {% for answer in question.answers %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio"
+                                       name="question_{{ question.id }}"
+                                       id="answer_{{ answer.id }}_{{ question.id }}"
+                                       value="{{ answer.id }}" required>
+                                <label class="form-check-label" for="answer_{{ answer.id }}_{{ question.id }}">
+                                    {{ answer.text }}
+                                </label>
+                            </div>
+                            {% endfor %}
+
+                        <!-- Тип: множественный выбор -->
+                        {% elif question.question_type == 'multiple' %}
+                            {% for answer in question.answers %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox"
+                                       name="question_{{ question.id }}"
+                                       id="answer_{{ answer.id }}_{{ question.id }}"
+                                       value="{{ answer.id }}">
+                                <label class="form-check-label" for="answer_{{ answer.id }}_{{ question.id }}">
+                                    {{ answer.text }}
+                                </label>
+                            </div>
+                            {% endfor %}
+
+                        <{% elif question.question_type == 'text' %}
+<div class="mb-3">
+    <label for="text_answer_{{ question.id }}" class="form-label">
+        Введите ваш ответ:
+    </label>
+    <input type="text"
+           class="form-control form-control-lg"
+           id="text_answer_{{ question.id }}"
+           name="question_text_{{ question.id }}"
+           placeholder="Напишите ответ здесь..."
+           required
+           style="font-size: 1.1rem;">
+    <div class="form-text">
+        Введите слово, фразу или число
+    </div>
+</div>
+{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        Завершить тест
+                    </button>
+                    <a href="{{ url_for('main.tests') }}" class="btn btn-outline-secondary">
+                        Отмена
+                    </a>
+                </div>
+            </form>
+
+            <!-- ЕСЛИ НЕТ ВОПРОСОВ (информация о тесте) -->
+            {% else %}
+            <div class="alert alert-info">
+                <h5>Инструкция:</h5>
+                <ul>
+                    <li>На прохождение теста дается {{ test.time_limit // 60 }} минут</li>
+                    <li>Тест состоит из {{ test.questions|length }} вопросов</li>
+                    <li>Для успешной сдачи необходимо набрать {{ test.passing_score }}% правильных ответов</li>
+                    <li>После начала теста таймер нельзя остановить</li>
+                    <li>Для ответов на вопросы выберите один или несколько вариантов</li>
+                </ul>
+            </div>
+
+            <form method="POST" action="{{ url_for('main.start_test', test_id=test.id) }}">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Начать тест
+                </button>
+                <a href="{{ url_for('main.tests') }}" class="btn btn-outline-secondary btn-lg">
+                    Вернуться к списку тестов
+                </a>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if questions and result_id %}
+<script>
+// Таймер обратного отсчета
+const timeLimit = {{ test.time_limit }}; // в секундах
+let timeLeft = timeLimit;
+
+function updateTimer() {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    const timerEl = document.getElementById('timer');
+    if (timerEl) {
+        timerEl.textContent =
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    if (timeLeft <= 0) {
+        alert('Время вышло! Тест будет автоматически отправлен.');
+        const form = document.querySelector('form');
+        if (form) {
+            form.submit();
+        }
+    } else {
+        timeLeft--;
+        setTimeout(updateTimer, 1000);
+    }
+}
+
+// Запускаем таймер
+setTimeout(updateTimer, 1000);
+
+// Экзаменационный режим (строгий): fullscreen, защита от переключения вкладок и копирования
+const isStrictMode = {{ 'true' if test.is_strict_mode else 'false' }};
+
+if (isStrictMode) {
+    // Переход в полноэкранный режим после загрузки страницы
+    document.addEventListener('DOMContentLoaded', function () {
+        if (document.fullscreenEnabled) {
+            document.documentElement.requestFullscreen().catch(function () {
+                // Игнорируем ошибку, если браузер блокирует автозапуск
+            });
+        }
+    });
+
+    // Контроль переключения вкладок / свертывания окна
+    let visibilityViolations = 0;
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            visibilityViolations += 1;
+            if (visibilityViolations === 1) {
+                alert('Внимание: переключение вкладок во время экзамена запрещено. Повторная попытка завершит тест.');
+            } else if (visibilityViolations >= 2) {
+                alert('Тест будет завершен из-за повторного переключения вкладок.');
+                const form = document.querySelector('form');
+                if (form) {
+                    form.submit();
+                }
+            }
+        }
+    });
+
+    // Блокировка контекстного меню
+    document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+    });
+
+    // Блокировка некоторых сочетаний клавиш (копирование, печать, DevTools и т.п.)
+    document.addEventListener('keydown', function (e) {
+        const key = e.key.toLowerCase();
+
+        // Ctrl/Meta комбинации
+        if (e.ctrlKey || e.metaKey) {
+            if (['c', 'v', 'x', 'p', 's', 'u'].includes(key)) {
+                e.preventDefault();
+            }
+        }
+
+        // F12, PrintScreen
+        if (key === 'f12' || key === 'printscreen') {
+            e.preventDefault();
+        }
+    });
+}
+</script>
+{% endif %}
+
+{% endblock %}

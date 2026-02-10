@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Создание теста{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Создание нового теста</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control", placeholder="Введите название теста") }}
+                            {% if form.title.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.title.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", rows=4, placeholder="Опишите тест...") }}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.difficulty.label(class="form-label") }}
+                                    {{ form.difficulty(class="form-select") }}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.time_limit.label(class="form-label") }}
+                                    {{ form.time_limit(class="form-control") }}
+                                    <small class="text-muted">в минутах</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.passing_score.label(class="form-label") }}
+                                    {{ form.passing_score(class="form-control") }}
+                                    <small class="text-muted">%</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    {{ form.access_type.label(class="form-label") }}
+                                    {{ form.access_type(class="form-select") }}
+                                    <small class="text-muted">
+                                        Обычный тест можно проходить сразу. Для теста по подписке
+                                        пользователь сначала записывается, и модератор видит список записавшихся.
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.max_attempts.label(class="form-label") }}
+                                    {{ form.max_attempts(class="form-control") }}
+                                    <small class="text-muted">
+                                        0 — без ограничения.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('moderator.panel') }}" class="btn btn-secondary">
+                                Отмена
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>Советы по созданию теста</h5>
+                </div>
+                <div class="card-body">
+                    <ul>
+                        <li>Название должно быть понятным и отражать содержание теста</li>
+                        <li>В описании укажите, какие знания проверяет тест</li>
+                        <li>Выберите соответствующую сложность:
+                            <ul>
+                                <li><span class="badge bg-success">Легкий</span> - для начинающих</li>
+                                <li><span class="badge bg-warning">Средний</span> - для практикующих специалистов</li>
+                                <li><span class="badge bg-danger">Сложный</span> - для экспертов</li>
+                            </ul>
+                        </li>
+                        <li>После создания теста добавьте вопросы</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

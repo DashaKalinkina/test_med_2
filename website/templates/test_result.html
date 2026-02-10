@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">Результаты теста</h2>
+            <h3>{{ result.test.title if result.test else 'Тест удален' }}</h3>
+
+            <div class="alert alert-{{ 'success' if result.passed else 'danger' if result.passed is false else 'warning' }}">
+                <h4 class="alert-heading">
+                    {% if result.passed is true %}
+                    Тест пройден!
+                    {% elif result.passed is false %}
+                    Тест не пройден
+                    {% else %}
+                    Тест в процессе
+                    {% endif %}
+                </h4>
+                <p>
+                    Ваш результат:
+                    {% if result.percentage is not none %}
+                    {{ "%.1f"|format(result.percentage) }}%
+                    {% else %}
+                    не завершен
+                    {% endif %}
+                </p>
+                <p>Проходной балл: {{ result.test.passing_score if result.test else '?' }}%</p>
+                <p>Набрано баллов: {{ result.score if result.score is not none else '?' }}</p>
+                {% if result.time_taken %}
+                <p>Время выполнения: {{ result.time_taken // 60 }} мин {{ result.time_taken % 60 }} сек</p>
+                {% endif %}
+            </div>
+
+            {% if detailed_answers %}
+            <h4>Детализация ответов:</h4>
+           {% for detail in detailed_answers %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5>Вопрос: {{ detail.question.text if detail.question else 'Вопрос удален' }}</h5>
+
+        <!-- Изображение вопроса, если есть -->
+        {% if detail.question and detail.question.image_filename %}
+        <div class="mb-3">
+            <img src="{{ url_for('static', filename='uploads/' + detail.question.image_filename) }}"
+                 class="img-fluid rounded"
+                 alt="Изображение к вопросу"
+                 style="max-height: 200px;">
+        </div>
+        {% endif %}
+
+        {% if detail.is_correct is not none %}
+        <p class="text-{{ 'success' if detail.is_correct else 'danger' }}">
+            {{ 'Правильно' if detail.is_correct else 'Неправильно' }}
+        </p>
+        {% endif %}
+
+        <!-- Для текстовых вопросов -->
+        {% if detail.question and detail.question.question_type == 'text' %}
+        <p><strong>Ваш ответ:</strong> {{ detail.user_answers[0].text_answer if detail.user_answers else 'Нет ответа' }}</p>
+        <p><strong>Правильный ответ:</strong> {{ detail.correct_answers[0].text if detail.correct_answers else 'Не указан' }}</p>
+
+        <!-- Для вопросов с выбором -->
+        {% else %}
+        <p><strong>Ваши ответы:</strong></p>
+        <ul>
+            {% for answer in detail.user_answers %}
+            <li>{{ answer.text }}</li>
+            {% else %}
+            <li>Нет ответа</li>
+            {% endfor %}
+        </ul>
+
+        <p><strong>Правильные ответы:</strong></p>
+        <ul>
+            {% for answer in detail.correct_answers %}
+            <li>{{ answer.text }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+            {% endif %}
+
+            <a href="{{ url_for('main.tests') }}" class="btn btn-primary">Вернуться к тестам</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
